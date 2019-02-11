@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Атрибуты катсцены указывают на расположение ресурсов, что позволит не писать полный путь к каждому файлу-->
+<cutsciene music="res/cutsciene/music/" sound="res/cutsciene/sound/" image="res/cutsciene/frames/">
+	<!-- лейтмотив - это музыка, играющая до конца катсцены (можно раскомментить)-->
+	<!-- leithmotive src="maintheme.ogg"/ -->
+	
+	<!-- Изображения обязательно требуют начало и конец отрисовки в секундах-->
+	<image src="blacke.png" start="0" end="2.0"/>
+
+	<!-- Звуки не имеют конца воспроизведения-->
+	<sound src="squeak.ogg" start="2.0"/>
+	
+	<!-- Музыка может быть остановлена досрочно, но обычно "end" для неё не указывается (опц.) -->
+	<music src="secret_materials.ogg" start="4.0"/>
+	<image src="corpse.png" start="2.0" end="4.0"/>
+	
+	<!-- анимации рассчитаны на применение спрайт-листов, и потому требуют размерности кадров[frame_width и frame_height], и частоты кадров [framerate](не зависит от FPS игры!)-->
+	<!-- Если путь к директории ресурса не указан в атрибутах cutsciene, то его нужно указывать полностью -->
+	<animation src="res/cutsciene/animation/blacke_run.png" frame_width="256" frame_height="256" start="4.0" end="6.0" framerate="12"/> 
+</cutsciene>
+ 

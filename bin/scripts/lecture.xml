@@ -1,0 +1,24 @@
+<Krivonosova>
+	<lecture id="1">
+		<replica id="1">Кривоносова: Где лабы?!</replica>
+		<replica id="2">Андрейка: *отрывается от XML*</replica>
+		<replica id="3">Андрейка: Какие лабы?</replica>
+	</lecture>
+	<lecture id="2">
+		<replica id="1">Кривоносова: Собака сутулая, где лабы?!</replica>
+		<replica id="2">Андрейка: Туть.</replica>
+	</lecture>
+	<lecture id="3">
+		<replica id="1">Кривоносова: *уезжает в Казань*</replica>
+		<replica id="2">Андрейка: *чиллит с XML*</replica>
+	</lecture>
+	
+	<lecture id="4">
+		<replica id="1">Кривоносова: *Возвращается*</replica>
+		<replica id="2">Кривоносова: Где лабы?</replica>
+		<replica id="3">Андрейка: *уходит в закат*</replica>
+		<replica id="4">Военком: *встречает Андрейку*</replica>
+		<replica id="5">*звук пробки из бутылки*</replica>
+		<replica id="6">Военком: Добрый вечер..</replica>
+	</lecture>
+</Krivonosova>
