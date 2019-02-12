@@ -1,10 +1,8 @@
 package code;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import javax.swing.Timer;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -18,7 +16,6 @@ import org.newdawn.slick.Sound;
 import org.newdawn.slick.SpriteSheet;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -47,12 +44,14 @@ public class Cutsciene {
 	private class Composition{
 		Music music;
 		float start, end;
+		boolean played = false;
 	}
 	
 	/**Класс-структура звука*/
 	private class SingleSound{
 		Sound sound;
-		float start;	
+		float start;
+		boolean played = false;
 	}
 
 	/**Класс-структура анимации*/
@@ -96,16 +95,51 @@ public class Cutsciene {
 	 * @param y координата отрисовки по-вертикали
 	 * */
 	public void render(Graphics g, float x, float y) {
+		//отрисовка кадра, в том случае, если секундомер проходит между его началом и концом 
 		for(Frame frame: frameset) {
-			if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, 0, 0);
+			if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, x, y);
 		}
+		
+		//отрисовка анимаций по секундомеру
 		for(Animated animated: animset) {
-			if(playingTime > animated.start && playingTime < animated.end) g.drawAnimation(animated.anim, 0, 0);
+			if(playingTime > animated.start && playingTime < animated.end) g.drawAnimation(animated.anim, x, y);
 		}
 	}
 	
+	/**
+	 * Обновление катсцены
+	 * */
 	public void update(int delta) {
+		//проигрывание музыки
+		for(Composition composition: musicset) {
+			if(composition.end != -1) {
+				if(playingTime > composition.start && !composition.played) {
+					composition.music.play();
+					composition.played = true;
+				} 
+				//если музыка играет, а не должна, выключаем её
+				if(playingTime > composition.end && composition.music.playing()) {
+					composition.music.stop();
+				}
+			}else {
+				if(playingTime > composition.start && !composition.played){
+					composition.music.play();
+					composition.played = true;
+				}
+			}
+		}
 		
+		//воспроизведение звука
+		for (int i = 0; i < soundset.size(); i++) {
+			SingleSound current_sound = soundset.get(i);
+			//если звук ещё не играл - играем его
+			if(playingTime > current_sound.start && !current_sound.played) {
+				current_sound.sound.play();
+				current_sound.played = true;//..и отключаем
+			}
+		}
+		
+		playingTime = Math.abs(startTimeMillis - System.currentTimeMillis())/1000f;
 	}
 	
 	/**Добавляет в катсцену изображение, отображающееся на экране заданный промежуток времени
@@ -237,7 +271,7 @@ public class Cutsciene {
 			src_frames = cutsciene.hasAttribute("image") ? cutsciene.getAttribute("image") : "";
 			src_anim = cutsciene.hasAttribute("animation") ? cutsciene.getAttribute("animation") : "";
 			//-------------------------//
-					
+
 			//Парсинг изображений
 			NodeList images = document.getElementsByTagName("image");
 			for (int i = 0; i < images.getLength(); i++) {
@@ -245,35 +279,36 @@ public class Cutsciene {
 				String src = src_frames + element.getAttribute("src");
 				float start = Float.parseFloat(element.getAttribute("start"));
 				float end = Float.parseFloat(element.getAttribute("end"));
+
 				insertAt(new Image(src), start, end);
 			}
 
 			//Парсинг музыки
 			NodeList music = document.getElementsByTagName("music");
 			for (int i = 0; i < music.getLength(); i++) {
-				Element element = (Element)images.item(i);
+				Element element = (Element)music.item(i);
 				String src = src_music + element.getAttribute("src");
 				float start = Float.parseFloat(element.getAttribute("start"));
-				if(!element.hasAttribute("end")) {
+				if(element.hasAttribute("end")) {
 					float end = Float.parseFloat(element.getAttribute("end"));
 					insertAt(new Music(src), start, end);
 				}else 
 					insertAt(new Music(src), start);
 			}
-			
+
 			//Парсинг звука
 			NodeList sounds = document.getElementsByTagName("sound");
 			for (int i = 0; i < sounds.getLength(); i++) {
-				Element element = (Element)images.item(i);
+				Element element = (Element)sounds.item(i);
 				String src = src_sound + element.getAttribute("src");
 				float start = Float.parseFloat(element.getAttribute("start"));
 				insertAt(new Sound(src), start);
 			}
 			
 			//Парсинг анимации
-			NodeList animations = document.getElementsByTagName("music");
+			NodeList animations = document.getElementsByTagName("animation");
 			for (int i = 0; i < animations.getLength(); i++) {
-				Element element = (Element)images.item(i);
+				Element element = (Element)animations.item(i);
 				String src = src_anim + element.getAttribute("src");
 				//начало и конец
 				float start = Float.parseFloat(element.getAttribute("start"));
@@ -291,11 +326,11 @@ public class Cutsciene {
 			}
 			
 			//Парсинг лейтмотива
-			NodeList leithmotiveNode = document.getElementsByTagName("leithmotive");
-			Element element = (Element) leithmotiveNode.item(0);
-			String src = element.getAttribute("src");
-			
-			leithmotive = new Music(src);
+			Element leithmotiveNode = (Element) document.getElementsByTagName("leithmotive").item(0);
+			if(leithmotiveNode != null) {
+				String src = src_music + leithmotiveNode.getAttribute("src");
+				leithmotive = new Music(src);
+			}
 		} catch (SlickException e) {
 			System.err.println("Ошибка парсинга! ");
 			e.printStackTrace();
@@ -309,7 +344,9 @@ public class Cutsciene {
 	public void start() {		
 		playingTime = 0;
 		startTimeMillis = System.currentTimeMillis();
-		if(leithmotive != null) leithmotive.loop();
+		if(leithmotive != null) {
+			leithmotive.loop();
+		}
 		isPlaying = true;
 	}
 	

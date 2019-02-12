@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cutsciene music="res/music/" sound="res/sounds/" image="res/textures/">
+	<music src="Flashback.ogg" start="0" end="4.0"/>
+	<sound src="la.ogg" start="0.5"/>
+	
+	<image src="flashback_intro1.png" start="0" end="2.0"/>
+	<image src="flashback_intro2.png" start="2.0" end="4.0"/>
+	<image src="flashback_intro3.png" start="4.0" end="6.5"/>
+	<sound src="na.ogg" start="6.5"/>
+	<music src="Light.ogg" start="4.0"/>
+</cutsciene>
+ 
