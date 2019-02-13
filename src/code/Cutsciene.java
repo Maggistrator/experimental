@@ -8,6 +8,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.newdawn.slick.Animation;
+import org.newdawn.slick.Font;
+import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Music;
@@ -29,9 +31,9 @@ public class Cutsciene {
 	 * Заметка:
 	 * [тому, кто собирается поддерживать этот класс]
 	 * Был вариант сделать сделать интерфейс а-ля Resourse, отнаследовать все типы ресурсов
-	 * от него в отдельных классах и уже там реализовать парсинг, рендеринг/воспроизведение и т.д.;
-	 * Но автор сего в порядке эксперимента рискнул, и собрал всё это в один god-object, 
-	 * и принимал последующие решения с точки зрения этого подхода.
+	 * от него в отдельных классах и уже там реализовать парсинг, рендеринг/воспроизведение и т.д.; 
+	 * {т.е. реализовать фабрику/фабричный метод} но автор сего в порядке эксперимента рискнул, 
+	 * и собрал всё это в один god-object, и принимал последующие решения с точки зрения этого подхода.
 	 **/
 	
 	/**Класс-структура изображения*/
@@ -59,6 +61,14 @@ public class Cutsciene {
 		Animation anim;
 		float start, end;	
 	}
+
+	/**Класс-структура субтитров*/
+	private class Subtitle{
+		float x, y;
+		float width, height;
+		float starts, ends;
+		String text;
+	}
 	
 	//скрипт-источник, может быть пуст
 	String sourceScript = null;
@@ -68,6 +78,7 @@ public class Cutsciene {
 	private ArrayList<Composition> musicset = new ArrayList<>();
 	private ArrayList<SingleSound> soundset = new ArrayList<>();
 	private ArrayList<Animated> animset = new ArrayList<>();
+	private ArrayList<Subtitle> subset = new ArrayList<>();
 	
 	//Лейтмотив, как лаконичная альтернатива коллекции из одного файла
 	private Music leithmotive = null;
@@ -95,6 +106,12 @@ public class Cutsciene {
 	 * @param y координата отрисовки по-вертикали
 	 * */
 	public void render(Graphics g, float x, float y) {
+		//отрисовка кадра, в том случае, если секундомер проходит между его началом и концом 
+		for(Frame frame: frameset) {
+			if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, x, y);
+		}
+				
+		
 		//отрисовка кадра, в том случае, если секундомер проходит между его началом и концом 
 		for(Frame frame: frameset) {
 			if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, x, y);
@@ -195,8 +212,6 @@ public class Cutsciene {
 	
 	/**
 	 * Добавление покадровой анимации
-	 * <br><i><b>[примечание]</b>все анимации созданные при помощи XML по-умолчанию не зациклены, 
-	 * и если она закончится раньше, чем окончился рендеринг, то будет отрисовываться последний кадр</i>
 	 * @param anim анимация, которую следует отрисовать
 	 * @param start время начала анимации
 	 * @param end время конца анимации
@@ -211,8 +226,19 @@ public class Cutsciene {
 	}
 	
 	/**
-	 * Исключает изображение из катсцены
-	 * @param image объект, который следует исключить
+	 * Добавление субтитров
+	 * @param text текст субтитров
+	 * @param start время начала отрисовки текста
+	 * @param end время конца отрисовки (сек)
+	 * */
+	public void insertAt(String text, float start, float end) {
+		Subtitle sub = new Subtitle();
+		subset.add(sub);
+	}
+	
+	/**
+	 * Исключает все вхождения данного изображения из катсцены
+	 * @param image изображение, которое следует исключить
 	 * */
 	public void remove(Image image) {
 		for(Frame frame : frameset) 
@@ -220,7 +246,7 @@ public class Cutsciene {
 	}
 	
 	/**
-	 * Исключает музыкальную композицию из катсцены
+	 * Исключает все вхождения этой композиции из катсцены
 	 * @param music объект, который следует исключить
 	 * */
 	public void remove(Music music) {
@@ -229,8 +255,8 @@ public class Cutsciene {
 	}
 
 	/**
-	 * Исключает звуковую дорожку из катсцены
-	 * @param music объект, который следует исключить
+	 * Исключает все вхождения звуковой дорожки из катсцены
+	 * @param sound объект, который следует исключить
 	 * */
 	public void remove(Sound sound) {
 		for(SingleSound soundtrack : soundset) 
@@ -238,12 +264,21 @@ public class Cutsciene {
 	}
 
 	/**
-	 * Исключает анимацию из катсцены
-	 * @param music объект, который следует исключить
+	 * Исключает из катсцены все вхождения этой анимации 
+	 * @param animation объект, который следует исключить
 	 * */
 	public void remove(Animation animation) {
 		for(Animated animated: animset) 
-			if(animation.equals(animated.anim)) soundset.remove(animated);
+			if(animation.equals(animated.anim)) animset.remove(animated);
+	}	
+
+	/**
+	 * Исключает из катсцены все вхождения этих субтитров (только фразу целиком)
+	 * @param text объект, который следует исключить
+	 * */
+	public void remove(String text) {
+		for(Subtitle sub: subset) 
+			if(text.equals(sub.text)) subset.remove(sub);
 	}	
 	
 	/**Парсер XML-скрипта*/
@@ -361,10 +396,28 @@ public class Cutsciene {
 		return playingTime;
 	}
 	
-	private void sort() {}
-	
-	/**Возвращение катсцены в исходное состояние*/
-	public void reset() {}
+	/**Вычисляет позицию на экране и размеры текста для текущего TrueType-шрифта*/
+	private void recalculateSubtitleSizeAndPosition(Graphics g, GameContainer c, Subtitle sub){
+		Font font = g.getFont();
+		boolean fits = false;
+		
+		float frame_width = c.getWidth();
+		float text_width = font.getWidth(sub.text);
+		
+		//если строка помещается в 0.8 размера экрана, то переносы не нужны
+		if((frame_width - frame_width*0.2f) > text_width) {
+			sub.width = text_width;
+			fits = true;
+		} else sub.width = frame_width*0.2f;
+		
+		if(!fits) {
+			
+			float fits_factor = frame_width / text_width;
+			for(int i = 0; i > (int)fits_factor; i++) {
+				
+			}
+		}
+	}
 	
 	/**Перезагрузка скрипта, и замещение старых данных новыми.
 	 * <br> Если исходного скрипта не существует (например, если катсцена создана программно),
