@@ -8,6 +8,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.newdawn.slick.Animation;
+import org.newdawn.slick.Color;
 import org.newdawn.slick.Font;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
@@ -21,6 +22,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import core.TrueTypeFont;
+
 /**
  * Класс катсцены.
  * <br>Позволяет создавать ролики из отдельных <i>изображений, анимаций, музыки, и звуков</i>
@@ -29,7 +32,6 @@ import org.xml.sax.SAXException;
 public class Cutsciene {
 	/*
 	 * Заметка:
-	 * [тому, кто собирается поддерживать этот класс]
 	 * Был вариант сделать сделать интерфейс а-ля Resourse, отнаследовать все типы ресурсов
 	 * от него в отдельных классах и уже там реализовать парсинг, рендеринг/воспроизведение и т.д.; 
 	 * {т.е. реализовать фабрику/фабричный метод} но автор сего в порядке эксперимента рискнул, 
@@ -66,12 +68,15 @@ public class Cutsciene {
 	private class Subtitle{
 		float x, y;
 		float width, height;
-		float starts, ends;
+		float start, end;
 		String text;
+		String[] lines = {};
 	}
 	
 	//скрипт-источник, может быть пуст
 	String sourceScript = null;
+	
+	private float linewidthFactor = 0.2f;
 	
 	//"дорожки" ресурсов на таймлайне - изображения, музыка, звуки, и анимации соответственно
 	private ArrayList<Frame> frameset = new ArrayList<>();
@@ -88,38 +93,61 @@ public class Cutsciene {
 	private long startTimeMillis;
 
 	private boolean isPlaying = false;//почти как клавиша "Play"
+	private TrueTypeFont font;
+	private GameContainer c;
 	
-	/**Конструктор для катсцен с XML-сценарием
-	 * @param filename путь к файлу сценария
+	/**
+	 * Этот метод предназначен для инициализации катсцены при помощи XML-сценария
 	 * */
-	public Cutsciene(String filename) {
+	public void initWithScript(String filename, GameContainer c, TrueTypeFont font) {
+		this.c = c;
+		this.font = font;
 		sourceScript = filename;
-		parseScript(filename);
+		if(sourceScript != null) parseScript(sourceScript, c, font);
 	}
 	
-	/**Конструктор для создания катсцены вручную, из кода программы*/
-	public Cutsciene() {/*реализация не требуется*/}
+	private Color opaque_black = new Color(0, 0, 0, 0.7f);//цвет подложки субтитров
 	
 	/**Отрисовка катсцены на экране
 	 * @param g инструменты отрисовки из инструментария Slick2D
 	 * @param x координата отрисовки по-горизонтали
 	 * @param y координата отрисовки по-вертикали
 	 * */
-	public void render(Graphics g, float x, float y) {
-		//отрисовка кадра, в том случае, если секундомер проходит между его началом и концом 
-		for(Frame frame: frameset) {
-			if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, x, y);
-		}
+	public void render(Graphics g, GameContainer c, float x, float y) {
+		if(isPlaying) {
+			if(font != null) g.setFont(font);
+			
+			//отрисовка кадра, в том случае, если секундомер проходит между его началом и концом 
+			for(Frame frame: frameset) {
+				if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, x, y);
+			}
+			
+			//отрисовка анимаций по секундомеру
+			for(Animated animated: animset) {
+				if(playingTime > animated.start && playingTime < animated.end) g.drawAnimation(animated.anim, x, y);
+			}
+			
+			//отрисовка реплик по секундомеру
+			for (Subtitle sub: subset) {
+				Color init_color = g.getColor();
 				
-		
-		//отрисовка кадра, в том случае, если секундомер проходит между его началом и концом 
-		for(Frame frame: frameset) {
-			if(playingTime > frame.start && playingTime < frame.end) g.drawImage(frame.image, x, y);
-		}
-		
-		//отрисовка анимаций по секундомеру
-		for(Animated animated: animset) {
-			if(playingTime > animated.start && playingTime < animated.end) g.drawAnimation(animated.anim, x, y);
+				if (playingTime > sub.start && playingTime < sub.end) {
+					//черная подложка для читабельности
+					g.setColor(opaque_black);
+					g.fillRect(0, sub.y-5, c.getWidth(), (c.getHeight() - sub.y)+5);
+					
+					//текст
+					Font font = g.getFont();
+					int frame_width = c.getWidth();
+					for (int i = 0; i < sub.lines.length; i++) {
+						int width = font.getWidth(sub.lines[i]);
+						g.setColor(Color.white);
+						g.drawString(sub.lines[i], x+(frame_width - width)/2, y+sub.y+(font.getLineHeight()*i + 2));
+					}
+				}
+				
+				g.setColor(init_color);
+			}
 		}
 	}
 	
@@ -127,36 +155,38 @@ public class Cutsciene {
 	 * Обновление катсцены
 	 * */
 	public void update(int delta) {
-		//проигрывание музыки
-		for(Composition composition: musicset) {
-			if(composition.end != -1) {
-				if(playingTime > composition.start && !composition.played) {
-					composition.music.play();
-					composition.played = true;
-				} 
-				//если музыка играет, а не должна, выключаем её
-				if(playingTime > composition.end && composition.music.playing()) {
-					composition.music.stop();
-				}
-			}else {
-				if(playingTime > composition.start && !composition.played){
-					composition.music.play();
-					composition.played = true;
+		if(isPlaying) {
+			//проигрывание музыки
+			for(Composition composition: musicset) {
+				if(composition.end != -1) {
+					if(playingTime > composition.start && !composition.played) {
+						composition.music.play();
+						composition.played = true;
+					} 
+					//если музыка играет, а не должна, выключаем её
+					if(playingTime > composition.end && composition.music.playing()) {
+						composition.music.stop();
+					}
+				}else {
+					if(playingTime > composition.start && !composition.played){
+						composition.music.play();
+						composition.played = true;
+					}
 				}
 			}
-		}
-		
-		//воспроизведение звука
-		for (int i = 0; i < soundset.size(); i++) {
-			SingleSound current_sound = soundset.get(i);
-			//если звук ещё не играл - играем его
-			if(playingTime > current_sound.start && !current_sound.played) {
-				current_sound.sound.play();
-				current_sound.played = true;//..и отключаем
+			
+			//воспроизведение звука
+			for (int i = 0; i < soundset.size(); i++) {
+				SingleSound current_sound = soundset.get(i);
+				//если звук ещё не играл - играем его
+				if(playingTime > current_sound.start && !current_sound.played) {
+					current_sound.sound.play();
+					current_sound.played = true;//..и отключаем
+				}
 			}
+			//таймер
+			playingTime = Math.abs(startTimeMillis - System.currentTimeMillis())/1000f;
 		}
-		
-		playingTime = Math.abs(startTimeMillis - System.currentTimeMillis())/1000f;
 	}
 	
 	/**Добавляет в катсцену изображение, отображающееся на экране заданный промежуток времени
@@ -231,9 +261,14 @@ public class Cutsciene {
 	 * @param start время начала отрисовки текста
 	 * @param end время конца отрисовки (сек)
 	 * */
-	public void insertAt(String text, float start, float end) {
+	public void insertAt(String text, TrueTypeFont font, GameContainer c, float start, float end) {
 		Subtitle sub = new Subtitle();
+		sub.text = text;
+		sub.start = start;
+		sub.end = end;
 		subset.add(sub);
+		
+		calculateSubtitleSizeAndPosition(font, c, sub);
 	}
 	
 	/**
@@ -281,8 +316,22 @@ public class Cutsciene {
 			if(text.equals(sub.text)) subset.remove(sub);
 	}	
 	
+	/**
+	 * Отступ от краёв окна в процентах от его ширины. 
+	 * <br>Нормальное значение составляет 0.2f
+	 * <br><i>Если значение больше 50% или меньше 0, то значение установится в 0.5 или 0 соответственно</i>
+	 * */
+	public void setLinewidthFactor(float linewidthFactor) {
+		this.linewidthFactor = linewidthFactor < 0.5f ? linewidthFactor : 0.5f;
+		this.linewidthFactor = linewidthFactor > 0 ? linewidthFactor : 0;
+	}
+	
+	public float getLinewidthFactor() {
+		return linewidthFactor;
+	}
+	
 	/**Парсер XML-скрипта*/
-	private void parseScript(String source) {
+	private boolean parseScript(String source, GameContainer c, TrueTypeFont font) {
 		Document document = null;	
 		
 		try { 
@@ -294,6 +343,7 @@ public class Cutsciene {
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			System.err.println("XML-сценарий катсцены повреждён, или содержит ошибки. Детали: ");
 			e.printStackTrace();
+			return false;
 		}
 		
 		try {
@@ -360,6 +410,19 @@ public class Cutsciene {
 				insertAt(anim, start, end);
 			}
 			
+			//Парсинг субтитров
+			NodeList subtitles = document.getElementsByTagName("line");
+			for (int i = 0; i < subtitles.getLength(); i++) { 
+				Element element = (Element)subtitles.item(i);
+				String text = element.getTextContent();
+				
+				//начало и конец
+				float start = Float.parseFloat(element.getAttribute("start"));
+				float end = Float.parseFloat(element.getAttribute("end"));
+				
+				insertAt(text, font, c, start, end);
+			}
+			
 			//Парсинг лейтмотива
 			Element leithmotiveNode = (Element) document.getElementsByTagName("leithmotive").item(0);
 			if(leithmotiveNode != null) {
@@ -369,8 +432,9 @@ public class Cutsciene {
 		} catch (SlickException e) {
 			System.err.println("Ошибка парсинга! ");
 			e.printStackTrace();
+			return false;
 		}
-		
+		return true;
 	}	
 	
 	/**Запуск катсцены на воспроизведение.
@@ -389,6 +453,10 @@ public class Cutsciene {
 	public void stop() {
 		isPlaying = false;
 		if(leithmotive != null) leithmotive.stop();
+		
+		musicset.forEach((composition) -> {
+			composition.music.stop();
+		});
 	}
 	
 	/**Возвращает время, прошедшее с момента старта катсцены*/
@@ -397,26 +465,48 @@ public class Cutsciene {
 	}
 	
 	/**Вычисляет позицию на экране и размеры текста для текущего TrueType-шрифта*/
-	private void recalculateSubtitleSizeAndPosition(Graphics g, GameContainer c, Subtitle sub){
-		Font font = g.getFont();
-		boolean fits = false;
+	private void calculateSubtitleSizeAndPosition(TrueTypeFont font, GameContainer c, Subtitle sub){
+		boolean fits = false;//влезает или нет
+		int lines_count = 1 + sub.text.length() - sub.text.replace("\n", "").length();
 		
 		float frame_width = c.getWidth();
+		float frame_height = c.getHeight();
 		float text_width = font.getWidth(sub.text);
 		
 		//если строка помещается в 0.8 размера экрана, то переносы не нужны
-		if((frame_width - frame_width*0.2f) > text_width) {
+		if(frame_width - (frame_width*linewidthFactor) > text_width) {
 			sub.width = text_width;
 			fits = true;
-		} else sub.width = frame_width*0.2f;
+		} else sub.width = frame_width - (frame_width*linewidthFactor);
 		
+		//если текст не поместился на одну строку, будут добавлены переносы
 		if(!fits) {
-			
-			float fits_factor = frame_width / text_width;
-			for(int i = 0; i > (int)fits_factor; i++) {
-				
+			String[] words = sub.text.split(" ");
+			StringBuilder newline = new StringBuilder();
+
+			sub.text = "";
+			for(int i = 0; i < words.length; i++) {	
+				String line = newline.toString()+words[i];
+				if(font.getWidth(line) < sub.width) {
+					newline.append(words[i]+" ");
+					sub.text += words[i]+" ";
+				}
+				else {
+					sub.text += "\n"+words[i]+" ";
+					newline = new StringBuilder(words[i]+" ");
+					lines_count++;
+				}
 			}
+			sub.lines = sub.text.split("\n");
+		} else {
+			sub.lines = new String[1];
+			sub.lines[0] = sub.text;
 		}
+		
+		//вычисление координат текста, в зависимости от его размеров
+		sub.x = (frame_width - sub.width)/2;
+		sub.y = (frame_height - 10) - font.getHeight(sub.text) * lines_count;
+		sub.height = font.getHeight(sub.text) * lines_count;
 	}
 	
 	/**Перезагрузка скрипта, и замещение старых данных новыми.
@@ -437,8 +527,7 @@ public class Cutsciene {
 			musicset.clear();
 			frameset.clear();
 			animset.clear();
-			leithmotive = null;
-			parseScript(sourceScript);
+			parseScript(sourceScript, c, font);
 		}
 		
 		//после перезагрузки, работавшая катсцена начнётся с начала
@@ -446,7 +535,6 @@ public class Cutsciene {
 	}
 	
 	 /* TODO: Вынести парсинг в отдельный поток, чтобы избежать фризов
-	  Пока происходит парсинг, (не boolean loaded = true) в центр черного экрана должна выводиться небольшая белая надпись "loading..."*/
-	 
-	 //TODO: Сделать субтитры!!
+	  * upd: поток не содержащий GL-контекста не имеет права создавать GL-объекты, вопрос с потоком отложен на неопределённое время 
+	  */
 }

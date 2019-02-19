@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <cutsciene music="res/music/" sound="res/sounds/" image="res/textures/">
-	<music src="Flashback.ogg" start="0" end="4.0"/>
+	<music src="Flashback.ogg" start="0" end="8.0"/>
 	<sound src="la.ogg" start="0.5"/>
 	
-	<image src="flashback_intro1.png" start="0" end="2.0"/>
-	<image src="flashback_intro2.png" start="2.0" end="4.0"/>
-	<image src="flashback_intro3.png" start="4.0" end="6.5"/>
-	<sound src="na.ogg" start="6.5"/>
-	<music src="Light.ogg" start="4.0"/>
+	<line start="0.0" end="8.0">Жизнь бурно кипит в тёмных водах на десятки миль вокруг. Птицы, змеи, лягушки, и камыш кивает головой в такт редким тяжёлым порывам насыщенного влагой воздуха.</line>
+	<image src="flashback_intro1.png" start="0" end="4.0"/>
+	<image src="flashback_intro2.png" start="4.0" end="8.0"/>
+	<line start="8.0" end="12.5">Вы видите глубокий тёмный пруд посреди болота.</line>
+	<image src="flashback_intro3.png" start="8.0" end="12.5"/>
+	<sound src="na.ogg" start="12.5"/>
+	<music src="Light.ogg" start="8.0"/>
 </cutsciene>
  
