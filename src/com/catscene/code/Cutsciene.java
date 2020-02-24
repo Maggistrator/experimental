@@ -1,4 +1,4 @@
-package code;
+package com.catscene.code;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,7 +22,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import core.TrueTypeFont;
+import com.catscene.core.TrueTypeFont;
+import com.catscene.core.TrueTypeFont;
 
 /**
  * Класс катсцены.

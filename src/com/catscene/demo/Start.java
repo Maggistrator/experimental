@@ -1,5 +1,6 @@
-package code;
+package com.catscene.demo;
 
+import com.catscene.code.Cutsciene;
 import java.awt.Font;
 
 import org.newdawn.slick.AppGameContainer;
@@ -8,13 +9,13 @@ import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.SlickException;
-import core.TrueTypeFont;
+import com.catscene.core.TrueTypeFont;
 
 public class Start extends BasicGame{
 
 	Cutsciene cs = new Cutsciene();    
 	
-	//костыль, который загружает массив русских символов в поддерживаемые кодировки
+	//пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	public static Font font = new Font("Courier New", Font.PLAIN, 16);
     public static TrueTypeFont slicFont;
 	
@@ -25,7 +26,7 @@ public class Start extends BasicGame{
     
     @Override
 	public void init(GameContainer container) throws SlickException { 
-    	slicFont = new TrueTypeFont(font, true,("йцукенгшщзхъфывапролджэячсмитьбюё".toUpperCase()+"йцукенгшщзхъфывапролджэячсмитьбюё").toCharArray());
+    	slicFont = new TrueTypeFont(font, true,("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ".toUpperCase()+"пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").toCharArray());
 		cs.initWithScript("res/scripts/test.xml", container, slicFont);
 		cs.start();
 	}

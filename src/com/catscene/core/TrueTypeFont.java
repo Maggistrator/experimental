@@ -1,4 +1,4 @@
-package core;
+package com.catscene.core;
 
 import java.awt.Color;
 import java.awt.FontMetrics;
